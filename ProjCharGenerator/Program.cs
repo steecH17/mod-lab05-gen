@@ -24,101 +24,106 @@ namespace generator
         }
     }
 
-    class BigramGenerator
+    public class BigramGenerator
     {
-        private Dictionary<string, Dictionary<string, int>> bigrams = new Dictionary<string, Dictionary<string, int>>();
+        private readonly Dictionary<string, int> bigrams = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> generatedFrequency = new Dictionary<string, int>();
+        private readonly Random random = new Random();
+        private readonly string bigramsFilePath;
+        private readonly string analysisFilePath;
+        private readonly int textLength;
+        private int totalFrequencySum;
 
-        private List<string> startingWords = new List<string>();
-        private Random random = new Random();
-
-        public BigramGenerator(string filePath)
+        public BigramGenerator(string bigramsFilePath, string analysisFilePath, int textLength = 1000)
         {
-            DataReader(filePath);
+            this.bigramsFilePath = bigramsFilePath;
+            this.analysisFilePath = analysisFilePath;
+            this.textLength = textLength;
+            LoadBigrams();
         }
 
-        public void DataReader(string filePath)
+        public void GenerateAndSave(string resultFilePath)
         {
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException("Bigram data file not found", filePath);
+            string generatedText = GenerateText();
+            File.WriteAllText(resultFilePath, generatedText);
+            SaveAnalysisData();
+        }
 
-            foreach (string line in File.ReadLines(filePath))
+        private void LoadBigrams()
+        {
+            if (!File.Exists(bigramsFilePath))
+                throw new FileNotFoundException("Bigrams file not found", bigramsFilePath);
+
+            foreach (var line in File.ReadAllLines(bigramsFilePath))
             {
-                // Разбиваем строку на компоненты (разделители: пробелы и табы)
-                string[] parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
-                // Проверяем, что строка содержит минимум 3 элемента (номер, биграмма, частота)
-                if (parts.Length >= 3)
+                if (parts.Length < 2) continue;
+
+                string bigram = parts[0].Trim().ToLower();
+                if (bigram.Length != 2) continue;
+
+                if (int.TryParse(parts[1].Trim(), out int frequency))
                 {
-                    // Биграмма - это второй элемент (индекс 1)
-                    string bigram = parts[1];
-
-                    // Разделяем биграмму на два слова
-                    if (bigram.Length >= 2)
-                    {
-                        string firstWord = bigram.Substring(0, 1);
-                        string secondWord = bigram.Substring(1, 1);
-                        int frequency = int.Parse(parts[2]);
-
-                        // Добавляем в словарь биграмм
-                        if (!bigrams.ContainsKey(firstWord))
-                            bigrams[firstWord] = new Dictionary<string, int>();
-
-                        bigrams[firstWord][secondWord] = frequency;
-
-                        // Добавляем слово в список стартовых слов
-                        if (!startingWords.Contains(firstWord))
-                            startingWords.Add(firstWord);
-                    }
+                    bigrams[bigram] = frequency;
                 }
             }
+
+            totalFrequencySum = bigrams.Values.Sum();
         }
 
-        public string GenerateText(int wordCount)
+        private string GenerateText()
         {
-            if (startingWords.Count == 0)
-                return "No bigram data available for text generation";
+            if (bigrams.Count == 0)
+                throw new InvalidOperationException("No bigrams loaded for generation");
 
-            List<string> result = new List<string>();
+            var result = new StringBuilder();
 
-            // Выбираем случайное стартовое слово
-            string currentWord = startingWords[random.Next(startingWords.Count)];
-            result.Add(currentWord);
-
-            for (int i = 1; i < wordCount; i++)
+            for (int i = 0; i < textLength; i++)
             {
-                // Если для текущего слова нет продолжений, выбираем случайное слово
-                if (!bigrams.ContainsKey(currentWord) || bigrams[currentWord].Count == 0)
-                {
-                    currentWord = startingWords[random.Next(startingWords.Count)];
-                }
-                else
-                {
-                    // Выбираем следующее слово на основе частот
-                    Dictionary<string, int> nextWords = bigrams[currentWord];
-                    int totalFrequency = nextWords.Values.Sum();
-                    int randomValue = random.Next(totalFrequency);
-                    int cumulativeFrequency = 0;
-
-                    foreach (var pair in nextWords)
-                    {
-                        cumulativeFrequency += pair.Value;
-                        if (randomValue < cumulativeFrequency)
-                        {
-                            currentWord = pair.Key;
-                            break;
-                        }
-                    }
-                }
-                result.Add(currentWord);
+                string nextBigram = GetRandomBigram();
+                UpdateFrequency(nextBigram);
+                result.Append(nextBigram);
             }
 
-            return string.Join("", result); // Объединяем без пробелов
+            return result.ToString();
         }
 
-        public void GenerateOutput(string outputFile, int wordCount)
+        private string GetRandomBigram()
         {
-            string generatedText = GenerateText(wordCount);
-            File.WriteAllText(outputFile, generatedText, Encoding.UTF8);
+            int randomValue = random.Next(totalFrequencySum);
+            int cumulativeSum = 0;
+
+            foreach (var pair in bigrams)
+            {
+                cumulativeSum += pair.Value;
+                if (randomValue < cumulativeSum)
+                    return pair.Key;
+            }
+
+            return bigrams.Keys.First();
+        }
+
+        private void UpdateFrequency(string bigram)
+        {
+            if (generatedFrequency.ContainsKey(bigram))
+                generatedFrequency[bigram]++;
+            else
+                generatedFrequency[bigram] = 1;
+        }
+
+        private void SaveAnalysisData()
+        {
+            using (var writer = new StreamWriter(analysisFilePath, false, Encoding.UTF8))
+            {
+                foreach (var pair in generatedFrequency)
+                {
+                    double generatedFreq = (double)pair.Value / textLength;
+                    double expectedFreq = (double)bigrams[pair.Key] / totalFrequencySum;
+
+                    writer.WriteLine($"{pair.Key} {generatedFreq:F5} {expectedFreq:F5}");
+                }
+            }
         }
     }
 
@@ -178,29 +183,17 @@ namespace generator
     {
         static void Main(string[] args)
         {
-            // CharGenerator gen = new CharGenerator();
-            // SortedDictionary<char, int> stat = new SortedDictionary<char, int>();
-            // for(int i = 0; i < 1000; i++) 
-            // {
-            //    char ch = gen.getSym(); 
-            //    if (stat.ContainsKey(ch))
-            //       stat[ch]++;
-            //    else
-            //       stat.Add(ch, 1); Console.Write(ch);
-            // }
-            // Console.Write('\n');
-            // foreach (KeyValuePair<char, int> entry in stat) 
-            // {
-            //      Console.WriteLine("{0} - {1}",entry.Key,entry.Value/1000.0); 
-            // }
-            // Генерация текста на основе биграмм
             string bigramsPath = Path.Combine(Environment.CurrentDirectory, "bigrams_data.txt");
             string wordsPath = Path.Combine(Environment.CurrentDirectory, "words_data.txt");
+
             string bigramsOutputPath = Path.Combine("../Results", "gen-1.txt");
             string wordsOutputPath = Path.Combine("../Results", "gen-2.txt");
 
-            var bigramGenerator = new BigramGenerator(bigramsPath);
-            bigramGenerator.GenerateOutput(bigramsOutputPath, 1000);
+            string bigramsAnalysistPath = Path.Combine("../Results", "gen-1-analysis.txt");
+            string wordsAnalysisPath = Path.Combine("../Results", "gen-2-analysis.txt");
+
+            var bigramGenerator = new BigramGenerator(bigramsPath, bigramsAnalysistPath);
+            bigramGenerator.GenerateAndSave(bigramsOutputPath);
 
             var wordGenerator = new WordFrequencyGenerator(wordsPath);
             wordGenerator.GenerateOutput(wordsOutputPath, 1000);
