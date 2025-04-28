@@ -206,7 +206,6 @@ namespace generator
             {
                 foreach (var word in words)
                 {
-                    // Получаем ожидаемую и реальную частоту
                     double expectedFrequency = (double)wordFrequencies[word] / totalFrequency;
                     generatedFrequencies.TryGetValue(word, out int actualCount);
                     double actualFrequency = (double)actualCount / totalGeneratedWords;
@@ -235,13 +234,6 @@ namespace generator
 
             var wordGenerator = new WordFrequencyGenerator(wordsPath, wordsAnalysisPath);
             wordGenerator.GenerateAndSave(wordsOutputPath);
-            // string bigramText = bigramGenerator.GenerateText(1000);
-            // File.WriteAllText(bigramsOutputPath, bigramText);
-            // Console.WriteLine($"Bigram text generated ({bigramText.Length} characters) and saved to Result/gen-1.txt");
-
-            // Статистика по сгенерированному тексту
-            // Console.WriteLine("\nSample of generated text (first 100 chars):");
-            // Console.WriteLine(bigramText.Substring(0, Math.Min(100, bigramText.Length)));
 
         }
     }

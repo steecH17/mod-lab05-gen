@@ -88,74 +88,57 @@ public class WordFrequencyGeneratorTests
     [Fact]
     public void Constructor_LoadsFrequenciesCorrectly()
     {
-        // Arrange
         File.WriteAllText(TestWordsFile, "1 слово 0.1 0.1 100\n2 тест 0.1 0.2 200");
 
-        // Act
         var generator = new WordFrequencyGenerator(TestWordsFile, TestAnalysisFile);
 
-        // Assert
         Assert.Equal(2, generator.GetWordFrequencies().Count);
         Assert.Equal(300, generator.GetTotalFrequency());
 
-        // Cleanup
         File.Delete(TestWordsFile);
     }
 
     [Fact]
     public void GenerateText_ReturnsCorrectWordCount()
     {
-        // Arrange
         File.WriteAllText(TestWordsFile, "1 слово 100 0.1 100\n2 тест 200 0.2 200");
         var generator = new WordFrequencyGenerator(TestWordsFile, TestAnalysisFile);
 
-        // Act
         string text = generator.GenerateText(50);
 
-        // Assert
         Assert.Equal(50, text.Split(' ').Length);
 
-        // Cleanup
         File.Delete(TestWordsFile);
     }
 
     [Fact]
     public void SaveAnalysisData_CreatesFileWithCorrectData()
     {
-        // Arrange
         File.WriteAllText(TestWordsFile, "1 слово 100 0.1 100\n2 тест 200 0.2 200");
         var generator = new WordFrequencyGenerator(TestWordsFile, TestAnalysisFile);
 
-        // Act
         generator.GenerateAndSave(TestOutputFile, 100);
 
-        // Assert
         Assert.True(File.Exists(TestAnalysisFile));
         var lines = File.ReadAllLines(TestAnalysisFile);
 
-        // Проверяем количество строк (должно соответствовать количеству уникальных слов)
         Assert.Equal(2, lines.Length);
 
         foreach (var line in lines)
         {
             var parts = line.Split(' ');
 
-            // Проверяем структуру строки (3 части)
             Assert.Equal(3, parts.Length);
 
-            // Проверяем, что первая часть - это слово (не пустое)
             Assert.False(string.IsNullOrEmpty(parts[0]));
 
-            // Проверяем, что частоты являются числами с плавающей точкой
             Assert.True(double.TryParse(parts[1], out double actualFreq));
             Assert.True(double.TryParse(parts[2], out double expectedFreq));
 
-            // Проверяем, что частоты в допустимом диапазоне (0-1)
             Assert.InRange(actualFreq, 0, 1);
             Assert.InRange(expectedFreq, 0, 1);
         }
 
-        // Cleanup
         File.Delete(TestWordsFile);
         File.Delete(TestOutputFile);
         File.Delete(TestAnalysisFile);
@@ -164,32 +147,26 @@ public class WordFrequencyGeneratorTests
     [Fact]
     public void GenerateText_ThrowsWhenNoWordsLoaded()
     {
-        // Arrange
         File.WriteAllText(TestWordsFile, "");
         var generator = new WordFrequencyGenerator(TestWordsFile, TestAnalysisFile);
 
-        // Act & Assert
         var result = generator.GenerateText(10);
         Assert.Equal(string.Empty, result);
 
-        // Cleanup
         File.Delete(TestWordsFile);
     }
 
     [Fact]
     public void GenerateAndSave_CreatesOutputFile()
     {
-        // Arrange
+
         File.WriteAllText(TestWordsFile, "1 слово 100 0.1 100\n2 тест 200 0.2 200");
         var generator = new WordFrequencyGenerator(TestWordsFile, TestAnalysisFile);
 
-        // Act
         generator.GenerateAndSave(TestOutputFile, 10);
 
-        // Assert
         Assert.True(File.Exists(TestOutputFile));
 
-        // Cleanup
         File.Delete(TestWordsFile);
         File.Delete(TestOutputFile);
     }
@@ -197,16 +174,12 @@ public class WordFrequencyGeneratorTests
     [Fact]
     public void LoadFrequencies_HandlesInvalidLinesGracefully()
     {
-        // Arrange
         File.WriteAllText(TestWordsFile, "1 слово 100 0.1 100\ninvalid line\n2 тест 200 0.2 200");
 
-        // Act
         var generator = new WordFrequencyGenerator(TestWordsFile, TestAnalysisFile);
 
-        // Assert
         Assert.Equal(2, generator.GetWordFrequencies().Count);
 
-        // Cleanup
         File.Delete(TestWordsFile);
     }
 }
