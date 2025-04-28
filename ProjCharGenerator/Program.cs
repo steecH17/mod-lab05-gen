@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Globalization;
 using System.Security.Principal;
+using System.Reflection.Metadata.Ecma335;
 
 namespace generator
 {
@@ -34,6 +35,10 @@ namespace generator
         private readonly string analysisFilePath;
         private readonly int textLength;
         private int totalFrequencySum;
+
+        public Dictionary<string, int> GetBigrams() => bigrams;
+        public int GetTotalFrequencySum() => totalFrequencySum;
+        public Dictionary<string, int> GetGeneratedFrequency() => generatedFrequency;
 
         public BigramGenerator(string bigramsFilePath, string analysisFilePath, int textLength = 1000)
         {
@@ -74,7 +79,7 @@ namespace generator
             totalFrequencySum = bigrams.Values.Sum();
         }
 
-        private string GenerateText()
+        public string GenerateText()
         {
             if (bigrams.Count == 0)
                 throw new InvalidOperationException("No bigrams loaded for generation");
@@ -91,7 +96,7 @@ namespace generator
             return result.ToString();
         }
 
-        private string GetRandomBigram()
+        public string GetRandomBigram()
         {
             int randomValue = random.Next(totalFrequencySum);
             int cumulativeSum = 0;
@@ -129,7 +134,7 @@ namespace generator
         }
     }
 
-    class WordFrequencyGenerator
+    public class WordFrequencyGenerator
     {
         private Dictionary<string, int> wordFrequencies = new Dictionary<string, int>();
         private List<string> words = new List<string>();
@@ -138,6 +143,9 @@ namespace generator
         private int totalFrequency = 0;
         private readonly string wordsFilePath;
         private readonly string analysisFilePath;
+
+        public Dictionary<string, int> GetWordFrequencies() => wordFrequencies;
+        public  int GetTotalFrequency() => totalFrequency;
 
         public WordFrequencyGenerator(string wordsPath, string analysisPath)
         {
@@ -160,7 +168,7 @@ namespace generator
             foreach (var line in lines)
             {
                 var parts = line.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 2 && double.TryParse(parts[4], NumberStyles.Any, CultureInfo.InvariantCulture, out double frequency))
+                if (parts.Length >= 5 && double.TryParse(parts[4], NumberStyles.Any, CultureInfo.InvariantCulture, out double frequency))
                 {
                     string word = parts[1].Trim();
                     wordFrequencies[word] = (int)frequency;
@@ -171,7 +179,7 @@ namespace generator
             }
         }
 
-        private string GenerateText(int wordCount)
+        public string GenerateText(int wordCount)
         {
             if (words.Count == 0) return string.Empty;
 
