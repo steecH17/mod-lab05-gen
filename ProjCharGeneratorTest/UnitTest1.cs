@@ -165,7 +165,7 @@ public class WordFrequencyGeneratorTests
 
         generator.GenerateAndSave(TestOutputFile, 10);
 
-        Assert.True(File.Exists(TestOutputFile));
+        Assert.True(File.Exists(TestAnalysisFile));
 
         File.Delete(TestWordsFile);
         File.Delete(TestOutputFile);
