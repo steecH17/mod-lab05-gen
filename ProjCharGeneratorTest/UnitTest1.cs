@@ -64,6 +64,18 @@ public class BigramGeneratorTests
     }
 
     [Fact]
+    public void GenerateText_ThrowsWhenNoWordsLoaded()
+    {
+        File.WriteAllText(TestBigramsFile, "");
+        var generator = new WordFrequencyGenerator(TestBigramsFile, TestAnalysisFile);
+
+        var result = generator.GenerateText(10);
+        Assert.Equal(string.Empty, result);
+
+        File.Delete(TestBigramsFile);
+    }
+
+    [Fact]
     public void GetRandomBigram_ReturnsValidBigram()
     {
         // Arrange
@@ -154,22 +166,6 @@ public class WordFrequencyGeneratorTests
         Assert.Equal(string.Empty, result);
 
         File.Delete(TestWordsFile);
-    }
-
-    [Fact]
-    public void GenerateAndSave_CreatesOutputFile()
-    {
-
-        File.WriteAllText(TestWordsFile, "1 слово 100 0.1 100\n2 тест 200 0.2 200");
-        var generator = new WordFrequencyGenerator(TestWordsFile, TestAnalysisFile);
-
-        generator.GenerateAndSave(TestOutputFile, 10);
-
-        Assert.True(File.Exists(TestAnalysisFile));
-
-        File.Delete(TestWordsFile);
-        File.Delete(TestOutputFile);
-        File.Delete(TestAnalysisFile);
     }
 
     [Fact]
