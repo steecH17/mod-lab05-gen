@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Globalization;
+using System.Security.Principal;
 
 namespace generator
 {
@@ -46,6 +47,7 @@ namespace generator
         {
             string generatedText = GenerateText();
             File.WriteAllText(resultFilePath, generatedText);
+            Console.WriteLine(generatedText.Length);
             SaveAnalysisData();
         }
 
@@ -60,10 +62,10 @@ namespace generator
 
                 if (parts.Length < 2) continue;
 
-                string bigram = parts[0].Trim().ToLower();
+                string bigram = parts[1].Trim().ToLower();
                 if (bigram.Length != 2) continue;
 
-                if (int.TryParse(parts[1].Trim(), out int frequency))
+                if (int.TryParse(parts[2].Trim(), out int frequency))
                 {
                     bigrams[bigram] = frequency;
                 }
@@ -134,16 +136,27 @@ namespace generator
         private List<int> cumulativeFrequencies = new List<int>();
         private Random random = new Random();
         private int totalFrequency = 0;
+        private readonly string wordsFilePath;
+        private readonly string analysisFilePath;
 
-        public WordFrequencyGenerator(string filePath)
+        public WordFrequencyGenerator(string wordsPath, string analysisPath)
         {
-            LoadFrequencies(filePath);
+            this.wordsFilePath = wordsPath;
+            this.analysisFilePath = analysisPath;
+            LoadFrequencies();
         }
 
-        public void LoadFrequencies(string filePath)
+        public void GenerateAndSave(string outputFile, int wordCount = 1000)
         {
-            var lines = File.ReadAllLines(filePath, Encoding.UTF8);
-            Console.WriteLine("File OPen");
+            string generatedText = GenerateText(wordCount);
+            File.WriteAllText(outputFile, generatedText, Encoding.UTF8);
+            SaveAnalysisData(generatedText);
+        }
+
+        private void LoadFrequencies()
+        {
+            var lines = File.ReadAllLines(wordsFilePath, Encoding.UTF8);
+
             foreach (var line in lines)
             {
                 var parts = line.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -158,7 +171,7 @@ namespace generator
             }
         }
 
-        public string GenerateText(int wordCount)
+        private string GenerateText(int wordCount)
         {
             if (words.Count == 0) return string.Empty;
 
@@ -172,10 +185,27 @@ namespace generator
             return result.ToString().Trim();
         }
 
-        public void GenerateOutput(string outputFile, int wordCount)
+        private void SaveAnalysisData(string generatedText)
         {
-            string generateText = GenerateText(wordCount);
-            File.WriteAllText(outputFile, generateText, Encoding.UTF8);
+            var generatedWords = generatedText.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            int totalGeneratedWords = generatedWords.Length;
+
+            var generatedFrequencies = generatedWords
+                .GroupBy(w => w)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            using (var writer = new StreamWriter(analysisFilePath, false, Encoding.UTF8))
+            {
+                foreach (var word in words)
+                {
+                    // Получаем ожидаемую и реальную частоту
+                    double expectedFrequency = (double)wordFrequencies[word] / totalFrequency;
+                    generatedFrequencies.TryGetValue(word, out int actualCount);
+                    double actualFrequency = (double)actualCount / totalGeneratedWords;
+
+                    writer.WriteLine($"{word} {actualFrequency:F5} {expectedFrequency:F5}");
+                }
+            }
         }
     }
 
@@ -195,8 +225,8 @@ namespace generator
             var bigramGenerator = new BigramGenerator(bigramsPath, bigramsAnalysistPath);
             bigramGenerator.GenerateAndSave(bigramsOutputPath);
 
-            var wordGenerator = new WordFrequencyGenerator(wordsPath);
-            wordGenerator.GenerateOutput(wordsOutputPath, 1000);
+            var wordGenerator = new WordFrequencyGenerator(wordsPath, wordsAnalysisPath);
+            wordGenerator.GenerateAndSave(wordsOutputPath);
             // string bigramText = bigramGenerator.GenerateText(1000);
             // File.WriteAllText(bigramsOutputPath, bigramText);
             // Console.WriteLine($"Bigram text generated ({bigramText.Length} characters) and saved to Result/gen-1.txt");
