@@ -169,6 +169,7 @@ public class WordFrequencyGeneratorTests
 
         File.Delete(TestWordsFile);
         File.Delete(TestOutputFile);
+        File.Delete(TestAnalysisFile);
     }
 
     [Fact]
