@@ -213,8 +213,8 @@ namespace generator
     {
         static void Main(string[] args)
         {
-            string bigramsPath = Path.Combine(Environment.CurrentDirectory, "bigrams_data.txt");
-            string wordsPath = Path.Combine(Environment.CurrentDirectory, "words_data.txt");
+            string bigramsPath = Path.Combine(Environment.CurrentDirectory, "InputData/bigrams_data.txt");
+            string wordsPath = Path.Combine(Environment.CurrentDirectory, "InputData/words_data.txt");
 
             string bigramsOutputPath = Path.Combine("../Results", "gen-1.txt");
             string wordsOutputPath = Path.Combine("../Results", "gen-2.txt");
